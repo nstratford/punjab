@@ -300,8 +300,8 @@ class Httpb(resource.Resource):
         self.children = {}
         self.client   = 0
         self.verbose  = v
-
-        self.polling = self.service.polling or 15
+        self.shared   = {}
+        self.polling  = self.service.polling or 15
 
     def render_OPTIONS(self, request):
         request.setHeader('Access-Control-Allow-Origin', '*')
@@ -368,12 +368,27 @@ class Httpb(resource.Resource):
                 
                 s, d = self.service.parseBody(body_tag, xmpp_elements)
                 d.addCallback(self.return_httpb, s, request)
+            
             elif body_tag.hasAttribute('sid'):
                 if self.service.v:
                     log.msg("no sid is found but the body element has a 'sid' attribute")
                 # This is an error, no sid is found but the body element has a 'sid' attribute
                 self.send_http_error(404, request)
                 return server.NOT_DONE_YET
+            elif body_tag.hasAttribute('shared:key'):
+                ## attach to a session
+                sid = self.shared.get(body_tag['shared:key'])
+                if sid:
+                    s = self.sessions[sid]
+                    new_sid = s.makeSid()
+                    s.shared[new_sid] = {
+                        'sid': sid,
+                        'rid': int(body_tag['rid']),
+                        'result': 'attached'
+                        }
+                    self.sessions[new_sid] = s
+                    self.return_httpb(s, request)
+                    
             else:
                 # start session
                 s, d = self.service.startSession(body_tag, xmpp_elements)
@@ -438,6 +453,7 @@ class Httpb(resource.Resource):
             b.children += data
         
         self.return_body(request, b, session.charset)        
+
 
     
     def return_error(self, e, request):
@@ -626,6 +642,8 @@ class HttpbService(punjab.Service):
             # grab session                    
             if body.hasAttribute('sid'):
                 sid = str(body['sid'])
+            elif body.hasAttribute('shared:key'):
+                sid = self.shared[body['shared:key']]
             else:
                 if self.v:
                     log.msg('Session ID not found')
@@ -638,10 +656,6 @@ class HttpbService(punjab.Service):
                 if self.v:
                     log.msg('session does not exist?')
                 return None, defer.fail(error.NotFound)
-            ##  XXX this seems to break xmpp:restart='true'  --vargas
-            ##  (cf. http://www.xmpp.org/extensions/xep-0206.html#preconditions-sasl [Example 10])
-##            if body.hasAttribute('to') and body['to']!='':
-##                return s, defer.fail(error.BadRequest)
             
             # check for keys
             # TODO - clean this up

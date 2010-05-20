@@ -63,10 +63,8 @@ def make_session(pint, attrs, session_type='BOSH'):
 
     # this may need some work, idea, code taken from twisted.web.server
     pint.counter = pint.counter + 1
-    sid  = md5.new("%s_%s_%s" % (str(time.time()), str(random.random()) , str(pint.counter))).hexdigest()
 
-
-    s    = Session(pint, sid, attrs)
+    s    = Session(pint, attrs)
     
     s.addBootstrap(xmlstream.STREAM_START_EVENT, s.streamStart)
     s.addBootstrap(xmlstream.STREAM_CONNECTED_EVENT, s.connectEvent)
@@ -78,6 +76,12 @@ def make_session(pint, attrs, session_type='BOSH'):
     s.secure = 0
     s.use_raw = getattr(pint, 'use_raw', False) # use raw buffers
     
+    if attrs.has_key('shared:key'):
+        s.shared[s.sid] = {'sid': s.sid, 
+                           'rid': s.rid, 
+                           'result':'created'}
+        pint.shared[attrs['shared:key']] = s.sid
+        
     if attrs.has_key('secure') and attrs['secure'] == 'true':
         s.secure = 1
         s.authenticator.useTls = 1
@@ -100,7 +104,7 @@ def make_session(pint, attrs, session_type='BOSH'):
     # timeout
     reactor.callLater(s.inactivity, s.checkExpired)
 
-    pint.sessions[sid] = s
+    pint.sessions[s.sid] = s
     
     return s, s.waiting_requests[0].deferred
     
@@ -128,10 +132,12 @@ class WaitingRequest(object):
 
 class Session(jabber.JabberClientFactory, server.Session):
     """ Jabber Client Session class for client XMPP connections. """
-    def __init__(self, pint, sid, attrs):
+    def __init__(self, pint, attrs):
         """
         Initialize the session
         """
+        sid = self.makeSid(pint.counter)
+
         if attrs.has_key('charset'):
             self.charset = str(attrs['charset'])
         else:
@@ -140,6 +146,10 @@ class Session(jabber.JabberClientFactory, server.Session):
         self.to    = attrs['to']
         self.port  = 5222
         self.inactivity = 900
+        ## a hash for handling multiple sessions
+        self.shared = {}
+        self.created_shared = None
+
         if self.to != '' and self.to.find(":") != -1:
             # Check if port is in the 'to' string
             to, port = self.to.split(':')
@@ -239,6 +249,9 @@ class Session(jabber.JabberClientFactory, server.Session):
                                   startup=True,
                                   )
         
+
+    def makeSid(self, counter=1):
+        return md5.new("%s_%s_%s" % (str(time.time()), str(random.random()) , str(counter))).hexdigest()
     def rawDataIn(self, buf):
         """ Log incoming data on the xmlstream """
         if self.pint.v:
