@@ -350,7 +350,6 @@ class Httpb(resource.Resource):
         except domish.ParserError:
             log.msg('ERROR: Xml Parse Error')
             log.err()
-            log.msg(data)
             self.hp._reset()
             self.send_http_error(400, request) 
             return server.NOT_DONE_YET
@@ -466,10 +465,14 @@ class Httpb(resource.Resource):
 
 
     def checkSharedResult(self, session, b):
-        shared = b.getAttribute(('urn:xmpp:tmp:shared-bosh:0', 'key'))
-        if shared:
+        log.msg("========== check shared =====")
+        log.msg(session.shared)
+        log.msg(b.attributes)
+        shared = session.shared.get(session.sid)
+        if shared and shared.has_key('result'):
             b['xmlns:shared']  = NS_SHARED
-            b['shared:result'] = session.shared[shared]['result']
+            b['shared:result'] = shared['result']
+            del shared['result']
         return b
 
     def return_error(self, e, request):

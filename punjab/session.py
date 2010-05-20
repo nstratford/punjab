@@ -75,16 +75,14 @@ def make_session(pint, attrs, session_type='BOSH'):
     
     s.secure = 0
     s.use_raw = getattr(pint, 'use_raw', False) # use raw buffers
-    log.msg("=========== create session ")
-    log.msg(attrs)
+    
     if attrs.has_key(('urn:xmpp:tmp:shared-bosh:0', 'key')):
         shared_key = attrs[('urn:xmpp:tmp:shared-bosh:0', 'key')]
-        log.msg(shared_key)
-
         s.shared[s.sid] = {'sid': s.sid, 
                            'rid': s.rid, 
                            'result':'created'}
         pint.shared[shared_key] = s.sid
+        
         
     if attrs.has_key('secure') and attrs['secure'] == 'true':
         s.secure = 1

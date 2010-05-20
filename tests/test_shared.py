@@ -29,7 +29,7 @@ class SharedTestCase(test_basic.TestCase):
         def _testSessionCreate(res):
             self.failUnless(res[0].name=='body', 'Wrong element')            
             self.failUnless(res[0].hasAttribute('sid'), 'Not session id')
-            self.failUnless(res[0].getAttribute('shared:result') == 'created')
+            self.failUnless(res[0].getAttribute(('urn:xmpp:tmp:shared-bosh:0', 'result')) == 'created')
             
         def _error(e):
             # This fails on DNS 
