@@ -19,7 +19,7 @@ from session import make_session
 import punjab
 from punjab.xmpp import ns
 
-
+NS_SHARED = 'urn:xmpp:tmp:shared-bosh:0'
 NS_BIND = 'http://jabber.org/protocol/httpbind'
 NS_FEATURES = 'http://etherx.jabber.org/streams'
 
@@ -222,7 +222,7 @@ class HttpbParse:
             self.stream = elementStream()
         else:
             self.stream = domish.elementStream()
-
+        self.stream.localPrefixes = { 'xmlns': NS_BIND, 'xmlns:shared': NS_SHARED}
         self.stream.DocumentStartEvent = self.onDocumentStart
         self.stream.ElementEvent = self.onElement
         self.stream.DocumentEndEvent = self.onDocumentEnd
@@ -337,8 +337,9 @@ class Httpb(resource.Resource):
             request.content.seek(0, 0)       
 
         self.hp       = HttpbParse()
+        data = request.content.read()
         try:
-            body_tag, xmpp_elements = self.hp.parse(request.content.read()) 
+            body_tag, xmpp_elements = self.hp.parse(data)
             self.hp._reset()
 
             if getattr(body_tag, 'name', '') != "body":
@@ -349,6 +350,7 @@ class Httpb(resource.Resource):
         except domish.ParserError:
             log.msg('ERROR: Xml Parse Error')
             log.err()
+            log.msg(data)
             self.hp._reset()
             self.send_http_error(400, request) 
             return server.NOT_DONE_YET
@@ -359,6 +361,7 @@ class Httpb(resource.Resource):
             self.send_http_error(400, request) 
             return server.NOT_DONE_YET
         else:
+            start_session = False
             if self.service.inSession(body_tag):
                 # sid is an existing session
                 if body_tag.getAttribute('rid'):
@@ -375,9 +378,10 @@ class Httpb(resource.Resource):
                 # This is an error, no sid is found but the body element has a 'sid' attribute
                 self.send_http_error(404, request)
                 return server.NOT_DONE_YET
-            elif body_tag.hasAttribute('shared:key'):
+            elif body_tag.hasAttribute(('urn:xmpp:tmp:shared-bosh:0', 'key')):
+                shared_key = body_tag[('urn:xmpp:tmp:shared-bosh:0', 'key')]
                 ## attach to a session
-                sid = self.shared.get(body_tag['shared:key'])
+                sid = self.shared.get(shared_key)
                 if sid:
                     s = self.sessions[sid]
                     new_sid = s.makeSid()
@@ -388,8 +392,12 @@ class Httpb(resource.Resource):
                         }
                     self.sessions[new_sid] = s
                     self.return_httpb(s, request)
-                    
+                else:
+                    start_session = True
             else:
+                start_session = True
+
+            if start_session:                
                 # start session
                 s, d = self.service.startSession(body_tag, xmpp_elements)
                 d.addCallback(self.return_session, s, request)
@@ -429,6 +437,7 @@ class Httpb(resource.Resource):
         b['window'] = str(session.window)
         
         punjab.uriCheck(b, NS_BIND)
+        b = self.checkSharedResult(session, b)
         if session.attrs.has_key('content'):
             b['content'] = session.attrs['content']
 
@@ -447,6 +456,7 @@ class Httpb(resource.Resource):
         b = domish.Element((NS_BIND, "body"))
         punjab.uriCheck(b, NS_BIND)
         session.touch()
+        b = self.checkSharedResult(session, b)
         if getattr(session,'terminated', False):
             b['type']      = 'terminate'
         if data:
@@ -455,7 +465,13 @@ class Httpb(resource.Resource):
         self.return_body(request, b, session.charset)        
 
 
-    
+    def checkSharedResult(self, session, b):
+        shared = b.getAttribute(('urn:xmpp:tmp:shared-bosh:0', 'key'))
+        if shared:
+            b['xmlns:shared']  = NS_SHARED
+            b['shared:result'] = session.shared[shared]['result']
+        return b
+
     def return_error(self, e, request):
         echildren = []
         
@@ -561,6 +577,7 @@ class HttpbService(punjab.Service):
             self.make_session = make_session
         self.v  = verbose
         self.sessions = {}
+        self.shared   = {}
         self.counter  = 0
         self.polling = polling
         # self.expired  = {}

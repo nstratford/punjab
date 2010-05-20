@@ -44,8 +44,8 @@ class SharedTestCase(test_basic.TestCase):
       ver='1.6'
       wait='60'
       ack='1'
-      shared:key='3c1d69981b65bfbd641dcb64c82bb613'
       xmlns:shared='urn:xmpp:tmp:shared-bosh:0'
+      shared:key='3c1d69981b65bfbd641dcb64c82bb613'
       xml:lang='en'
       xmlns='http://jabber.org/protocol/httpbind'/>
  """
