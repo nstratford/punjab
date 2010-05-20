@@ -377,8 +377,8 @@ class Httpb(resource.Resource):
                 # This is an error, no sid is found but the body element has a 'sid' attribute
                 self.send_http_error(404, request)
                 return server.NOT_DONE_YET
-            elif body_tag.hasAttribute(('urn:xmpp:tmp:shared-bosh:0', 'key')):
-                shared_key = body_tag[('urn:xmpp:tmp:shared-bosh:0', 'key')]
+            elif body_tag.hasAttribute((NS_SHARED, 'key')):
+                shared_key = body_tag[(NS_SHARED, 'key')]
                 ## attach to a session
                 sid = self.shared.get(shared_key)
                 if sid:
@@ -465,9 +465,6 @@ class Httpb(resource.Resource):
 
 
     def checkSharedResult(self, session, b):
-        log.msg("========== check shared =====")
-        log.msg(session.shared)
-        log.msg(b.attributes)
         shared = session.shared.get(session.sid)
         if shared and shared.has_key('result'):
             b['xmlns:shared']  = NS_SHARED
@@ -662,8 +659,8 @@ class HttpbService(punjab.Service):
             # grab session                    
             if body.hasAttribute('sid'):
                 sid = str(body['sid'])
-            elif body.hasAttribute('shared:key'):
-                sid = self.shared[body['shared:key']]
+            elif body.hasAttribute((NS_SHARED, 'key')):
+                sid = self.shared[body[(NS_SHARED, 'key')]]
             else:
                 if self.v:
                     log.msg('Session ID not found')
