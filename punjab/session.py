@@ -107,7 +107,10 @@ def make_session(pint, attrs, session_type='BOSH'):
     reactor.callLater(s.inactivity, s.checkExpired)
 
     pint.sessions[s.sid] = s
-    
+    log.msg(pint.sessions)
+    log.msg(pint.shared)
+    log.msg(s.shared)
+    log.msg("shared info above ==========================")
     return s, s.waiting_requests[0].deferred
     
 

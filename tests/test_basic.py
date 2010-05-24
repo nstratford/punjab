@@ -1,15 +1,13 @@
 
 import os
-import sys, sha, random
+import random
 from twisted.trial import unittest
-import time
-from twisted.web import server, resource, static, http, client
-from twisted.words.protocols.jabber import jid
-from twisted.internet import defer, protocol, reactor
-from twisted.application import internet, service
-from twisted.words.xish import domish, xpath
 
-from twisted.python import log
+from twisted.web import server, resource, static
+
+from twisted.internet import defer, reactor
+
+from twisted.words.xish import domish
 
 from punjab.httpb import HttpbService
 from punjab.xmpp import server as xmppserver
@@ -144,7 +142,9 @@ class TestCase(unittest.TestCase):
         self.b.service.stopService()
         self.p.stopListening()
         for s in self.b.service.sessions.keys():
-            self.b.service.endSession(self.b.service.sessions[s])
+            sess = self.b.service.sessions.get(s)
+            if sess:
+                self.b.service.endSession(sess)
         if hasattr(self.proxy.factory,'client'):
             self.proxy.factory.client.transport.stopConnecting()
         

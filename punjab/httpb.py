@@ -300,7 +300,6 @@ class Httpb(resource.Resource):
         self.children = {}
         self.client   = 0
         self.verbose  = v
-        self.shared   = {}
         self.polling  = self.service.polling or 15
 
     def render_OPTIONS(self, request):
@@ -379,18 +378,19 @@ class Httpb(resource.Resource):
                 return server.NOT_DONE_YET
             elif body_tag.hasAttribute((NS_SHARED, 'key')):
                 shared_key = body_tag[(NS_SHARED, 'key')]
-                ## attach to a session
-                sid = self.shared.get(shared_key)
+                # attach to a session
+                sid = self.service.shared.get(shared_key)
                 if sid:
-                    s = self.sessions[sid]
+                    s = self.service.sessions[sid]
                     new_sid = s.makeSid()
                     s.shared[new_sid] = {
                         'sid': sid,
                         'rid': int(body_tag['rid']),
                         'result': 'attached'
                         }
-                    self.sessions[new_sid] = s
-                    self.return_httpb(s, request)
+                    s.sid = new_sid
+                    self.service.sessions[new_sid] = s
+                    d = defer.maybeDeferred(self.return_session, [s.features], s, request)
                 else:
                     start_session = True
             else:
@@ -474,7 +474,6 @@ class Httpb(resource.Resource):
 
     def return_error(self, e, request):
         echildren = []
-        
         try:
             # TODO - clean this up and make errors better
             if getattr(e.value,'stanza_error',None):
