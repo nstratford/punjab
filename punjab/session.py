@@ -263,7 +263,7 @@ class Session(jabber.JabberClientFactory, server.Session):
     
     def incrementRid(self, sid):        
         if self._getRid(sid):
-            self.shared[rid]['rid'] += 1
+            self.shared[sid]['rid'] += 1
         else:
             self.rid += 1
 
