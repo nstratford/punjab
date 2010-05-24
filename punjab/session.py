@@ -107,10 +107,6 @@ def make_session(pint, attrs, session_type='BOSH'):
     reactor.callLater(s.inactivity, s.checkExpired)
 
     pint.sessions[s.sid] = s
-    log.msg(pint.sessions)
-    log.msg(pint.shared)
-    log.msg(s.shared)
-    log.msg("shared info above ==========================")
     return s, s.waiting_requests[0].deferred
     
 
@@ -255,8 +251,32 @@ class Session(jabber.JabberClientFactory, server.Session):
                                   )
         
 
+    def _getRid(self, sid):
+        rid = None
+        shared = self.shared.get(sid)
+        if shared:
+            rid  = shared['rid']
+        return rid
+
     def makeSid(self, counter=1):
         return md5.new("%s_%s_%s" % (str(time.time()), str(random.random()) , str(counter))).hexdigest()
+    
+    def incrementRid(self, sid):        
+        if self._getRid(sid):
+            self.shared[rid]['rid'] += 1
+        else:
+            self.rid += 1
+
+    def ridWindow(self, sid, body_rid):
+        rid = self._getRid(sid)            
+        if rid is None:
+            rid = self.rid
+        if abs(int(body_rid) - int(rid)) > self.window:
+            if self.pint.v:
+                log.msg('This rid is invalid %s %s ' % (str(body_rid), str(rid),))
+            return True
+        return False
+    
     def rawDataIn(self, buf):
         """ Log incoming data on the xmlstream """
         if self.pint.v:

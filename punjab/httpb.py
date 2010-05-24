@@ -708,9 +708,7 @@ class HttpbService(punjab.Service):
                     s.touch()
                     # implements issue 32 and returns the data returned on a dropped connection
                     return s, defer.succeed(s.cache_data[int(body['rid'])])
-                if abs(int(body['rid']) - int(s.rid)) > s.window:
-                    if self.v:
-                        log.msg('This rid is invalid %s %s ' % (str(body['rid']), str(s.rid),))
+                if s.ridWindow(body['sid'], body['rid']):
                     return  s, defer.fail(error.NotFound)
             else:
                 if self.v:
@@ -733,7 +731,7 @@ class HttpbService(punjab.Service):
         
     def _parse(self, session, body_tag, xmpp_elements):
         # increment the request counter
-        session.rid  = session.rid + 1
+        session.incrementRid(body_tag['sid'])
         dont_poll = False
         d = None
         
