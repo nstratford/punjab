@@ -85,14 +85,18 @@ class TestCase(unittest.TestCase):
         self.rid = self.rid - 1
         return self.send(ext)
 
-    def send(self, ext = None):
+    def send(self, ext = None, sid = None, rid = None):
+        if sid is None:
+            sid = self.sid
+        if rid is None:
+            rid = self.rid
         b = domish.Element(("http://jabber.org/protocol/httpbind","body"))
         b['content']  = 'text/xml; charset=utf-8'
         self.rid = self.rid + 1
-        b['rid']      = str(self.rid)
-        b['sid']      = str(self.sid)
+        b['rid']      = str(rid)
+        b['sid']      = str(sid)
         b['xml:lang'] = 'en'
-        
+
         if ext is not None:
             if isinstance(ext, domish.Element):
                 b.addChild(ext)

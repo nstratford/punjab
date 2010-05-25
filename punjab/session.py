@@ -266,7 +266,7 @@ class Session(jabber.JabberClientFactory, server.Session):
             self.shared[sid]['rid'] += 1
         else:
             self.rid += 1
-
+        
     def ridWindow(self, sid, body_rid):
         rid = self._getRid(sid)            
         if rid is None:
