@@ -349,6 +349,8 @@ class Httpb(resource.Resource):
         """
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+        if self.service.redirect:
+            request.setHeader('Punjab-redirect', self.service.redirect)
         return """<html>
                  <body>
                  <a href='http://www.xmpp.org/extensions/xep-0124.html'>XEP-0124</a> - BOSH
@@ -361,6 +363,8 @@ class Httpb(resource.Resource):
         """
         request.setHeader('Access-Control-Allow-Origin', '*')
         request.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+        if self.service.redirect:
+            request.setHeader('Punjab-redirect', self.service.redirect)
         request.content.seek(0, 0)
         if self.service.v:
             log.msg('HEADERS %s:' % (str(time.time()),))
@@ -567,6 +571,7 @@ class HttpbService(punjab.Service):
 
     white_list = []
     black_list = []
+    redirect = None
 
     def __init__(self,
                  verbose = 0, polling = 15,

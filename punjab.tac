@@ -19,8 +19,10 @@ bosh = HttpbService(1)
 # or a black list
 # bosh.block_list = ['jabber.org', '.thetofu.com']
 
-root.putChild('http-bind', resource.IResource(bosh))
 
+# bosh.redirect = "http://example.com/http-bind"
+
+root.putChild('http-bind', resource.IResource(bosh))
 
 site  = server.Site(root)
 

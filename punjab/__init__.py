@@ -91,6 +91,9 @@ def makeService(config):
         print "The html directory is needed."
         return
 
+    if config['redirect']:
+        httpb.HttpbService.redirect = config['redirect']
+
     if config['white_list']:
         httpb.HttpbService.white_list = config['white_list'].split(',')
 
